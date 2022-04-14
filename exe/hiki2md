@@ -1,0 +1,9 @@
+#!/usr/bin/env ruby
+
+require "nkf"
+require "hiki2md"
+
+s = NKF.nkf("-w -m0", ARGF.read)
+doc = Hiki2md::HikiDocument.new(s)
+print doc.to_markdown
+
