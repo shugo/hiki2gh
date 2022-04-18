@@ -4,7 +4,7 @@ require "cgi"
 require "fileutils"
 require_relative "hiki2gh/version"
 
-module Hiki2md
+module Hiki2gh
   class Error < StandardError; end
 
   class HikiDocument
@@ -98,14 +98,52 @@ module Hiki2md
     end
 
     def export(dst_path)
-      Dir.glob("#{path}/*") do |wiki_path|
+      Dir.glob("#{@path}/*") do |wiki_path|
         wiki_name = File.basename(wiki_path)
-        Dir.mkdir_p(File.expand_path(wiki_name, dst_path))
-        attach_prefix = "#{wiki_path}/cahce/attach"
-        Dir.glob("#{attach_prefix}/**/*") do |file|
-          p file[attach_prefix..-1]
+        dst_wiki_path = File.expand_path(wiki_name, dst_path)
+        FileUtils.mkdir_p(dst_wiki_path)
+
+        attach_dir = "#{wiki_path}/cache/attach"
+        if File.directory?(attach_dir)
+          Dir.glob("#{attach_dir}/**/*") do |attach_path|
+            if File.file?(attach_path)
+              attach_file = attach_path[attach_dir.size + 1 .. -1]
+              u8_attach_file = decode_filename(attach_file)
+              dst_attach_path = File.expand_path("attach/#{u8_attach_file}",
+                                                 dst_wiki_path)
+              FileUtils.mkdir_p(File.dirname(dst_attach_path))
+              FileUtils.cp(attach_path, dst_attach_path)
+            end
+          end
         end
+
+        text_dir = "#{wiki_path}/text"
+        if File.directory?(text_dir)
+          Dir.glob("#{text_dir}/*") do |text_path|
+            if File.file?(text_path)
+              text_file = text_path[text_dir.size + 1 .. -1]
+              u8_text_file = decode_filename(text_file)
+              dst_text_path = File.expand_path("#{u8_text_file}.md",
+                                               dst_wiki_path)
+              p text_path
+              text = File.read(text_path, encoding: "eucJP-ms").encode("utf-8")
+              doc = HikiDocument.new(text)
+              File.write(dst_text_path, doc.to_markdown)
+            end
+          end
+        end
+        
+        #s = NKF.nkf("-w -m0", File.read(file))
+        #doc = Hiki2md::HikiDocument.new(s)
+        #print doc.to_markdown
       end
+    end
+
+    private
+
+    def decode_filename(file)
+      CGI.unescape(file).force_encoding("eucJP-ms").encode("utf-8").
+        tr("/", "／")
     end
   end
 end

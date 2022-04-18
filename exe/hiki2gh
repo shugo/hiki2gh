@@ -1,9 +1,15 @@
 #!/usr/bin/env ruby
 
 require "nkf"
-require "hiki2md"
+require "hiki2gh"
 
-s = NKF.nkf("-w -m0", ARGF.read)
-doc = Hiki2md::HikiDocument.new(s)
-print doc.to_markdown
+if ARGV.size < 2
+  STDERR.puts("Usage: hiki2md <source dir> <destination dir>")
+  exit(1)
+end
+
+
+farm = Hiki2gh::HikiFarm.new(ARGV[0])
+farm.export(ARGV[1])
+
 
