@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "hiki2md/version"
+require_relative "hiki2gh/version"
 
 module Hiki2md
   class Error < StandardError; end
