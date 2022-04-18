@@ -152,8 +152,13 @@ module Hiki2gh
               dst_text_path = File.expand_path("#{u8_text_file}.md",
                                                dst_wiki_path)
               text = File.read(text_path, encoding: "eucJP-ms").encode("utf-8")
-              doc = HikiDocument.new(text, File.basename(u8_text_file))
+              page_name = File.basename(u8_text_file)
+              doc = HikiDocument.new(text, page_name)
               File.write(dst_text_path, doc.to_markdown)
+              if page_name == "FrontPage"
+                FileUtils.cp(dst_text_path,
+                             "#{dst_wiki_path}/README.md")
+              end
             end
           end
         end
