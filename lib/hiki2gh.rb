@@ -83,7 +83,7 @@ module Hiki2gh
           label, url = s.slice(/\[\[(.*?)\]\]/, 1).split(/\|/)
           case url
           when nil
-            "[#{label}]#{}"
+            "[#{label}](#{label}.md)"
           when /\A:(.*)/
             u = attach_path($1.sub(/\A\.\.\//, ""))
             "[#{label}](#{u})"
