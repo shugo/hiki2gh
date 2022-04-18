@@ -23,11 +23,12 @@ module Hiki2gh
 (?<link>\[\[.*?\]\])|\
 (?<emphasis>'''?.*?'''?)|\
 (?<strike>==.*?==)|\
-(?<plugin>\{\{*?\}\})
+(?<plugin>\{\{.*?\}\})\
 /
     
-    def initialize(src)
+    def initialize(src, page_name = "")
       @src = src
+      @page_name = page_name
     end
 
     def to_markdown
@@ -73,22 +74,47 @@ module Hiki2gh
       }
     end
 
+    private
+
     def convert_inline(str)
       str.gsub(INILINE_RE) { |s|
         case
         when $~[:link]
           label, url = s.slice(/\[\[(.*?)\]\]/, 1).split(/\|/)
-          "[#{label}]" + (url ? "(#{url})" : "")
+          case url
+          when nil
+            "[#{label}]#{}"
+          when /\A:(.*)/
+            u = attach_path($1.sub(/\A\.\.\//, ""))
+            "[#{label}](#{u})"
+          when /\Ahttps?:/
+            "[#{label}](#{url})"
+          else
+            "[#{label}](#{url}.md)"
+          end            
         when $~[:emphasis]
           s.gsub(/'''?/, "**")
         when $~[:strike]
           s.gsub(/==/, "~~")
         when $~[:plugin]
-          s
+          case s
+          when /\{\{attach_anchor\((.*?)\)?\}\}/
+            path = attach_path($1)
+            "[#{$1}](#{path})"
+          when /\{\{attach_view\((.*?)\)?\}\}/
+            path = attach_path($1)
+            "![#{$1}](#{path})"
+          else
+            s
+          end
         else
           s
         end
       }
+    end
+
+    def attach_path(file)
+      "attach/#{@page_name}/#{file}"
     end
   end
 
@@ -125,25 +151,28 @@ module Hiki2gh
               u8_text_file = decode_filename(text_file)
               dst_text_path = File.expand_path("#{u8_text_file}.md",
                                                dst_wiki_path)
-              p text_path
               text = File.read(text_path, encoding: "eucJP-ms").encode("utf-8")
-              doc = HikiDocument.new(text)
+              doc = HikiDocument.new(text, File.basename(u8_text_file))
               File.write(dst_text_path, doc.to_markdown)
             end
           end
         end
-        
-        #s = NKF.nkf("-w -m0", File.read(file))
-        #doc = Hiki2md::HikiDocument.new(s)
-        #print doc.to_markdown
       end
     end
 
     private
 
     def decode_filename(file)
-      CGI.unescape(file).force_encoding("eucJP-ms").encode("utf-8").
-        tr("/", "／")
+      file.gsub(/[^\/]+/) { |s|
+        CGI.unescape(s).force_encoding("eucJP-ms").encode("utf-8").
+          tr("/", "／")
+      }
     end
   end
+end
+
+if $0 == __FILE__
+  require "nkf"
+  doc = Hiki2gh::HikiDocument.new(NKF.nkf("-w -m0", ARGF.read), "PageName")
+  print doc.to_markdown
 end
