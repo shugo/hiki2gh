@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "cgi"
+require "fileutils"
 require_relative "hiki2gh/version"
 
 module Hiki2md
@@ -87,6 +89,23 @@ module Hiki2md
           s
         end
       }
+    end
+  end
+
+  class HikiFarm
+    def initialize(path)
+      @path = path
+    end
+
+    def export(dst_path)
+      Dir.glob("#{path}/*") do |wiki_path|
+        wiki_name = File.basename(wiki_path)
+        Dir.mkdir_p(File.expand_path(wiki_name, dst_path))
+        attach_prefix = "#{wiki_path}/cahce/attach"
+        Dir.glob("#{attach_prefix}/**/*") do |file|
+          p file[attach_prefix..-1]
+        end
+      end
     end
   end
 end
